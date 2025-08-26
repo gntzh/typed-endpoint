@@ -8,13 +8,17 @@ mod sealed {
 /// Type-level Linked List
 pub trait TypeList: Sealed {
     type IfEmpty<Then, Else>;
+    const LEN: usize;
 }
 
 impl TypeList for Nil {
     type IfEmpty<Then, Else> = Then;
+
+    const LEN: usize = 0;
 }
 impl<H, T: TypeList> TypeList for Cons<H, T> {
     type IfEmpty<Then, Else> = Else;
+    const LEN: usize = 1 + T::LEN;
 }
 
 impl Sealed for Nil {}
@@ -58,6 +62,8 @@ impl<H, T: NonEmpty> NonEmpty for Cons<H, T> {
 mod tests {
     use typenum::assert_type_eq;
 
+    use crate::type_list::TypeList;
+
     use super::{Cons, First, IfEmpty, Init, Last, Nil, Rest};
 
     #[test]
@@ -65,13 +71,16 @@ mod tests {
         type OneList = Cons<u8, Cons<u16, Cons<u32, Cons<u64, Nil>>>>;
         type EmptyList = Nil;
 
+        assert_eq!(OneList::LEN, 4);
+        assert_eq!(EmptyList::LEN, 0);
+
+        assert_type_eq!(IfEmpty<OneList, u8, u16>, u16);
+        assert_type_eq!(IfEmpty<EmptyList, u8, u16>, u8);
+
         assert_type_eq!(First<OneList>, u8);
         assert_type_eq!(Rest<OneList>, Cons<u16, Cons<u32, Cons<u64, Nil>>>);
 
         assert_type_eq!(Last<OneList>, u64);
         assert_type_eq!(Init<OneList>, Cons<u8, Cons<u16, Cons<u32, Nil>>>);
-
-        assert_type_eq!(IfEmpty<OneList, u8, u16>, u16);
-        assert_type_eq!(IfEmpty<EmptyList, u8, u16>, u8);
     }
 }
