@@ -1,9 +1,13 @@
 use std::marker::PhantomData;
 
 use sealed::Sealed;
-mod sealed {
-    pub trait Sealed {}
-}
+
+pub type First<L> = <L as NonEmpty>::First;
+pub type Rest<L> = <L as NonEmpty>::Rest;
+pub type Last<L> = <L as NonEmpty>::Last;
+pub type Init<L> = <L as NonEmpty>::Init;
+pub type IfEmpty<L, Then, Else> = <L as TypeList>::IfEmpty<Then, Else>;
+pub type PushFront<L, I> = Cons<I, L>;
 
 /// Type-level Linked List
 pub trait TypeList: Sealed {
@@ -12,13 +16,14 @@ pub trait TypeList: Sealed {
 }
 
 impl TypeList for Nil {
-    type IfEmpty<Then, Else> = Then;
-
     const LEN: usize = 0;
+
+    type IfEmpty<Then, Else> = Then;
 }
 impl<H, T: TypeList> TypeList for Cons<H, T> {
-    type IfEmpty<Then, Else> = Else;
     const LEN: usize = 1 + T::LEN;
+
+    type IfEmpty<Then, Else> = Else;
 }
 
 impl Sealed for Nil {}
@@ -26,11 +31,6 @@ impl<H, T: TypeList> Sealed for Cons<H, T> {}
 
 pub struct Nil;
 pub struct Cons<H, T: TypeList>(PhantomData<(H, T)>);
-pub type First<L> = <L as NonEmpty>::First;
-pub type Rest<L> = <L as NonEmpty>::Rest;
-pub type Last<L> = <L as NonEmpty>::Last;
-pub type Init<L> = <L as NonEmpty>::Init;
-pub type IfEmpty<L, Then, Else> = <L as TypeList>::IfEmpty<Then, Else>;
 
 /// Empty Constraint Trait
 pub trait Empty: TypeList {}
@@ -58,11 +58,15 @@ impl<H, T: NonEmpty> NonEmpty for Cons<H, T> {
     type Init = Cons<H, <T as NonEmpty>::Init>;
 }
 
+mod sealed {
+    pub trait Sealed {}
+}
+
 #[cfg(test)]
 mod tests {
     use typenum::assert_type_eq;
 
-    use crate::type_list::TypeList;
+    use crate::type_list::{PushFront, TypeList};
 
     use super::{Cons, First, IfEmpty, Init, Last, Nil, Rest};
 
@@ -82,5 +86,8 @@ mod tests {
 
         assert_type_eq!(Last<OneList>, u64);
         assert_type_eq!(Init<OneList>, Cons<u8, Cons<u16, Cons<u32, Nil>>>);
+
+        assert_type_eq!(PushFront<OneList, u16>, Cons<u16, Cons<u8, Cons<u16, Cons<u32, Cons<u64, Nil>>>>>);
+        assert_type_eq!(PushFront<EmptyList, u16>, Cons<u16, Nil>);
     }
 }
