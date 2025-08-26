@@ -7,17 +7,14 @@ mod sealed {
 
 /// Type-level Linked List
 pub trait TypeList: Sealed {
-    /// associated const equality is incomplete
-    /// see issue [#92827](https://github.com/rust-lang/rust/issues/92827)
-    /// for more information
-    type IsEmpty: Bool;
+    type IfEmpty<Then, Else>;
 }
 
 impl TypeList for Nil {
-    type IsEmpty = True;
+    type IfEmpty<Then, Else> = Then;
 }
 impl<H, T: TypeList> TypeList for Cons<H, T> {
-    type IsEmpty = False;
+    type IfEmpty<Then, Else> = Else;
 }
 
 impl Sealed for Nil {}
@@ -29,7 +26,7 @@ pub type First<L> = <L as NonEmpty>::First;
 pub type Rest<L> = <L as NonEmpty>::Rest;
 pub type Last<L> = <L as NonEmpty>::Last;
 pub type Init<L> = <L as NonEmpty>::Init;
-pub type IfEmpty<L, Then, Else> = <<L as TypeList>::IsEmpty as Bool>::If<Then, Else>;
+pub type IfEmpty<L, Then, Else> = <L as TypeList>::IfEmpty<Then, Else>;
 
 /// Empty Constraint Trait
 pub trait Empty: TypeList {}
@@ -56,21 +53,6 @@ impl<H, T: NonEmpty> NonEmpty for Cons<H, T> {
     type Last = <T as NonEmpty>::Last;
     type Init = Cons<H, <T as NonEmpty>::Init>;
 }
-
-trait Bool: Sealed {
-    type If<Then, Else>;
-}
-pub struct True;
-pub struct False;
-
-impl Bool for True {
-    type If<Then, Else> = Then;
-}
-impl Bool for False {
-    type If<Then, Else> = Else;
-}
-impl Sealed for True {}
-impl Sealed for False {}
 
 #[cfg(test)]
 mod tests {
